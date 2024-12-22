@@ -1,11 +1,12 @@
 package itau.case_backend.adapters.output;
 
-import itau.case_backend.domain.entities.User;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
 import java.util.List;
 import java.util.Optional;
+
+import itau.case_backend.domain.entities.User;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -29,8 +30,8 @@ public class UserRepositoryTest {
 
         assertNotNull(users);
         assertEquals(2, users.size());
-        assertEquals("John Doe", users.get(0).getName());
-        assertEquals("Jane Smith", users.get(1).getName());
+        assertEquals(user1.getName(), users.get(0).getName());
+        assertEquals(user2.getName(), users.get(1).getName());
     }
 
     @Test
@@ -49,7 +50,7 @@ public class UserRepositoryTest {
         Optional<User> foundUser = userRepository.findUserById(user.getId());
 
         assertTrue(foundUser.isPresent());
-        assertEquals("John Doe", foundUser.get().getName());
+        assertEquals(user.getName(), foundUser.get().getName());
     }
 
     @Test
@@ -70,21 +71,22 @@ public class UserRepositoryTest {
 
         assertNotNull(savedUser);
         assertEquals(1, savedUser.getId());
-        assertEquals("John Doe", savedUser.getName());
+        assertEquals(user.getName(), savedUser.getName());
     }
 
     @Test
     void When_UpdatingUser_Expect_UserUpdatedSuccessfully() {
         User user = new User(0, "John Doe", "john@example.com", 30);
         User savedUser = userRepository.saveUser(user);
+        String newName = "John Smith";
 
-        savedUser.setName("John Smith");
+        savedUser.setName(newName);
         userRepository.saveUser(savedUser);
 
         Optional<User> updatedUser = userRepository.findUserById(savedUser.getId());
 
         assertTrue(updatedUser.isPresent());
-        assertEquals("John Smith", updatedUser.get().getName());
+        assertEquals(newName, updatedUser.get().getName());
     }
 
     @Test
@@ -114,4 +116,24 @@ public class UserRepositoryTest {
         assertTrue(usersAfterDeletion.stream().anyMatch(user -> user.getId() == 1L));
 
     }
+
+    @Test
+    void When_UserExistsWithEmail_Expect_ReturnUserByEmail() {
+        User user = new User(0, "John Doe", "john@example.com", 30);
+        userRepository.saveUser(user);
+
+        Optional<User> foundUser = userRepository.findUserByEmail("john@example.com");
+
+        assertTrue(foundUser.isPresent());
+        assertEquals(user.getName(), foundUser.get().getName());
+        assertEquals(user.getEmail(), foundUser.get().getEmail());
+    }
+
+    @Test
+    void When_UserDoesNotExistWithEmail_Expect_ReturnEmptyOptional() {
+        Optional<User> foundUser = userRepository.findUserByEmail("nonexistent@example.com");
+
+        assertFalse(foundUser.isPresent());
+    }
+
 }
