@@ -2,6 +2,7 @@ package itau.case_backend.domain.dtos;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -17,9 +18,10 @@ import jakarta.validation.constraints.Size;
  */
 public class UserPartialUpdateDTO {
 
-    @Size(min = 2, message = "O nome deve ter pelo menos 1 caractere")
+    @Size(min = 1, message = "O nome deve ter pelo menos 1 caractere")
     private String name;
 
+    @Size(min = 1, message = "O e-mail não pode estar vazio")
     @Email(message = "Formato de e-mail inválido")
     private String email;
 
