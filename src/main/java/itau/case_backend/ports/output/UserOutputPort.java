@@ -25,6 +25,14 @@ public interface UserOutputPort {
     Optional<User> findUserById(long id);
 
     /**
+     * Recupera um usuário pelo e-mail.
+     *
+     * @param email o e-mail do usuário a ser procurado
+     * @return um Optional contendo o usuário, ou Optional.empty() se não encontrado
+     */
+    Optional<User> findUserByEmail(String email);
+
+    /**
      * Salva um novo usuário ou atualiza um existente.
      *
      * @param user o objeto do usuário a ser salvo

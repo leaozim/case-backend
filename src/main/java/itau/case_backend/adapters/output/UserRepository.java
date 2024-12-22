@@ -37,6 +37,18 @@ public class UserRepository implements UserOutputPort {
     }
 
     /**
+     * Recupera um usuário pelo email.
+     *
+     * @param email o email do usuário a ser recuperado
+     * @return um Optional contendo o usuário, ou Optional.empty() se não encontrado
+     */
+    public Optional<User> findUserByEmail(String email) {
+        return userMap.values().stream()
+                .filter(user -> user.getEmail().equals(email))
+                .findFirst();
+    }
+
+    /**
      * Salva ou atualiza um usuário no repositório.
      * Se o ID do usuário for 0, um novo ID é gerado automaticamente.
      *
