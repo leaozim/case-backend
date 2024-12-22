@@ -18,9 +18,9 @@ public class UserRepositoryTest {
     }
 
     @Test
-    void testFindAllUsers() {
+    void When_SavingMultipleUsers_Expect_ReturnAllUsers() {
         User user1 = new User(0, "John Doe", "john@example.com", 30);
-        User user2 = new User(0, "Jane Doe", "jane@example.com", 25);
+        User user2 = new User(0, "Jane Smith", "jane@example.com", 25);
 
         userRepository.saveUser(user1);
         userRepository.saveUser(user2);
@@ -30,11 +30,19 @@ public class UserRepositoryTest {
         assertNotNull(users);
         assertEquals(2, users.size());
         assertEquals("John Doe", users.get(0).getName());
-        assertEquals("Jane Doe", users.get(1).getName());
+        assertEquals("Jane Smith", users.get(1).getName());
     }
 
     @Test
-    void testFindUserById() {
+    void When_SavingNoUsers_Expect_EmptyUserList() {
+        List<User> users = userRepository.findAllUsers();
+
+        assertNotNull(users);
+        assertTrue(users.isEmpty());
+    }
+
+    @Test
+    void When_UserExists_Expect_ReturnUserById() {
         User user = new User(0, "John Doe", "john@example.com", 30);
         userRepository.saveUser(user);
 
@@ -45,25 +53,28 @@ public class UserRepositoryTest {
     }
 
     @Test
-    void testFindUserByIdNotFound() {
+    void When_UserDoesNotExist_Expect_ReturnEmptyOptional() {
+        User user = new User(0, "John Doe", "john@example.com", 30);
+        userRepository.saveUser(user);
+
         Optional<User> foundUser = userRepository.findUserById(999L);
 
         assertFalse(foundUser.isPresent());
     }
 
     @Test
-    void testSaveUser() {
+    void When_SavingNewUser_Expect_ReturnSavedUserWithId() {
         User user = new User(0, "John Doe", "john@example.com", 30);
 
         User savedUser = userRepository.saveUser(user);
 
         assertNotNull(savedUser);
-        assertEquals(1, savedUser.getId()); // ID gerado deve ser 1 (primeiro ID)
+        assertEquals(1, savedUser.getId());
         assertEquals("John Doe", savedUser.getName());
     }
 
     @Test
-    void testUpdateUser() {
+    void When_UpdatingUser_Expect_UserUpdatedSuccessfully() {
         User user = new User(0, "John Doe", "john@example.com", 30);
         User savedUser = userRepository.saveUser(user);
 
@@ -77,22 +88,30 @@ public class UserRepositoryTest {
     }
 
     @Test
-    void testDeleteUserById() {
+    void When_DeletingUserById_Expect_UserRemoved() {
         User user = new User(0, "John Doe", "john@example.com", 30);
         User savedUser = userRepository.saveUser(user);
+        Optional<User> savedUserCheck = userRepository.findUserById(savedUser.getId());
+        assertTrue(savedUserCheck.isPresent());
 
         userRepository.deleteUserById(savedUser.getId());
 
         Optional<User> deletedUser = userRepository.findUserById(savedUser.getId());
-
         assertFalse(deletedUser.isPresent());
+
     }
 
     @Test
-    void testDeleteUserByIdNotFound() {
+    void When_DeletingNonexistentUserById_Expect_NoChangeInUserList() {
+        userRepository.saveUser(new User(0, "John Doe", "john@example.com", 30));
+        List<User> usersBeforeDeletion = userRepository.findAllUsers();
+        int initialSize = usersBeforeDeletion.size();
+
         userRepository.deleteUserById(999L);
 
-        List<User> users = userRepository.findAllUsers();
-        assertEquals(0, users.size());  // Não há usuários para excluir
+        List<User> usersAfterDeletion = userRepository.findAllUsers();
+        assertEquals(initialSize, usersAfterDeletion.size());
+        assertTrue(usersAfterDeletion.stream().anyMatch(user -> user.getId() == 1L));
+
     }
 }
