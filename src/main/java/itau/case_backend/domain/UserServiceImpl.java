@@ -2,7 +2,6 @@ package itau.case_backend.domain;
 
 import itau.case_backend.config.exception.EmailAlreadyExistsException;
 import itau.case_backend.config.exception.UserNotFoundException;
-import itau.case_backend.config.exception.UsersRetrievalException;
 import itau.case_backend.domain.dtos.UserDTO;
 import itau.case_backend.domain.dtos.UserPartialUpdateDTO;
 import itau.case_backend.domain.entities.User;
@@ -36,13 +35,10 @@ public class UserServiceImpl implements UserInputPort {
      * Retorna todos os usuários cadastrados.
      *
      * @return Lista de usuários.
-     * @throws UsersRetrievalException Se nenhum usuário for encontrado.
      */
     @Override
     public List<User> getAllUsers() {
-        List<User> users = userRepository.findAllUsers();
-        if (users.isEmpty()) throw new UsersRetrievalException();
-        return users;
+        return userRepository.findAllUsers();
     }
 
     /**
@@ -84,6 +80,8 @@ public class UserServiceImpl implements UserInputPort {
      */
     @Override
     public User updateUser(long id, UserDTO userDTO) {
+
+        System.out.println( "updateUser");
         if (userRepository.findAllUsers().stream()
                 .anyMatch(u -> u.getEmail().equals(userDTO.getEmail()))) {
             throw new EmailAlreadyExistsException(userDTO.getEmail());
