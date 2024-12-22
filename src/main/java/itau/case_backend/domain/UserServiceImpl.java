@@ -1,5 +1,10 @@
 package itau.case_backend.domain;
 
+import itau.case_backend.config.exception.EmailAlreadyExistsException;
+import itau.case_backend.config.exception.UserNotFoundException;
+import itau.case_backend.config.exception.UsersRetrievalException;
+import itau.case_backend.domain.dtos.UserDTO;
+import itau.case_backend.domain.dtos.UserPartialUpdateDTO;
 import itau.case_backend.domain.entities.User;
 import itau.case_backend.ports.input.UserInputPort;
 import itau.case_backend.ports.output.UserOutputPort;
@@ -9,113 +14,126 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Serviço que implementa a lógica de negócios para gerenciamento de usuários.
+ * Serviço que implementa a lógica de negócios para o gerenciamento de usuários.
  * Esta classe serve como a porta de entrada (input port) para a aplicação.
- * Os dados são armazenados temporariamente em um HashMap, sem persistência duradoura.
+ * Os dados são armazenados temporariamente e não há persistência duradoura, sendo utilizado um repositório (output port).
+ *
+ * <p>Esta classe gerencia as operações de criação, atualização, exclusão e consulta de usuários.</p>
+ *
+ * @see UserInputPort
+ * @see UserOutputPort
  */
 @Service
 public class UserServiceImpl implements UserInputPort {
 
     private final UserOutputPort userRepository;
 
-    /**
-     * Construtor para injeção de dependência do repositório de usuários.
-     *
-     * @param userRepository a implementação da porta de saída (output port) para persistência de dados
-     */
     public UserServiceImpl(UserOutputPort userRepository) {
         this.userRepository = userRepository;
     }
 
     /**
-     * Recupera todos os usuários.
+     * Retorna todos os usuários cadastrados.
      *
-     * @return lista de todos os usuários cadastrados
+     * @return Lista de usuários.
+     * @throws UsersRetrievalException Se nenhum usuário for encontrado.
      */
     @Override
     public List<User> getAllUsers() {
-        return userRepository.findAllUsers();
+        List<User> users = userRepository.findAllUsers();
+        if (users.isEmpty()) throw new UsersRetrievalException();
+        return users;
     }
 
     /**
-     * Recupera um usuário pelo ID.
+     * Retorna um usuário pelo ID.
      *
-     * @param id o ID do usuário a ser recuperado
-     * @return o usuário correspondente ao ID, ou null caso não encontrado
+     * @param id ID do usuário.
+     * @return Usuário correspondente.
+     * @throws UserNotFoundException Se o usuário não for encontrado.
      */
     @Override
     public User getUserById(long id) {
-        return userRepository.findUserById(id).orElse(null);
+        return userRepository.findUserById(id).orElseThrow(() -> new UserNotFoundException(id));
     }
 
     /**
      * Cria um novo usuário.
      *
-     * @param user o usuário a ser criado
-     * @return o usuário criado
+     * @param userDTO Dados do novo usuário.
+     * @return Usuário criado.
+     * @throws EmailAlreadyExistsException Se o e-mail já estiver em uso.
      */
     @Override
-    public User createUser(User user) {
-        validateUser(user);
-        if (userRepository.findAllUsers().stream().anyMatch(existingUser -> existingUser.getEmail().equals(user.getEmail()))) {
-            throw new IllegalArgumentException("O e-mail fornecido já está cadastrado em nosso sistema. Por favor, insira um e-mail diferente.");
+    public User createUser(UserDTO userDTO) {
+        if (userRepository.findAllUsers().stream()
+                .anyMatch(u -> u.getEmail().equals(userDTO.getEmail()))) {
+            throw new EmailAlreadyExistsException(userDTO.getEmail());
         }
-        return userRepository.saveUser(user);
+        return userRepository.saveUser(userDTO.toEntity());
     }
 
     /**
-     * Atualiza as informações de um usuário existente.
+     * Atualiza completamente um usuário pelo ID.
      *
-     * @param id o ID do usuário a ser atualizado
-     * @param updatedUser o objeto com as novas informações do usuário
-     * @return o usuário atualizado, ou null caso o usuário não exista
+     * @param id      ID do usuário.
+     * @param userDTO Novos dados do usuário.
+     * @return Usuário atualizado.
+     * @throws UserNotFoundException Se o usuário não for encontrado.
+     * @throws EmailAlreadyExistsException Se o e-mail já estiver em uso.
      */
     @Override
-    public User updateUser(long id, User updatedUser) {
+    public User updateUser(long id, UserDTO userDTO) {
+        if (userRepository.findAllUsers().stream()
+                .anyMatch(u -> u.getEmail().equals(userDTO.getEmail()))) {
+            throw new EmailAlreadyExistsException(userDTO.getEmail());
+        }
         return userRepository.findUserById(id)
-                .map(existingUser -> {
-                    Optional.ofNullable(updatedUser.getName()).ifPresent(existingUser::setName);
-                    Optional.ofNullable(updatedUser.getEmail()).ifPresent(existingUser::setEmail);
-                    Optional.ofNullable(updatedUser.getAge()).ifPresent(existingUser::setAge);
-                    return userRepository.saveUser(existingUser);
+                .map(user -> {
+                    user.setName(userDTO.getName());
+                    user.setEmail(userDTO.getEmail());
+                    user.setAge(userDTO.getAge());
+                    return userRepository.saveUser(user);
                 })
-                .orElse(null);
+                .orElseThrow(() -> new UserNotFoundException(id));
+    }
+
+    /**
+     * Atualiza parcialmente um usuário pelo ID.
+     *
+     * @param id              ID do usuário.
+     * @param updatedUserDTO  Dados parciais para atualização.
+     * @return Usuário atualizado.
+     * @throws UserNotFoundException Se o usuário não for encontrado.
+     * @throws EmailAlreadyExistsException Se o e-mail já estiver em uso.
+     */
+    @Override
+    public User updatePartialUser(long id, UserPartialUpdateDTO updatedUserDTO) {
+        if (userRepository.findAllUsers().stream()
+                .anyMatch(u -> u.getEmail().equals(updatedUserDTO.getEmail()))) {
+            throw new EmailAlreadyExistsException(updatedUserDTO.getEmail());
+        }
+        return userRepository.findUserById(id)
+                .map(user -> {
+                    Optional.ofNullable(updatedUserDTO.getName()).ifPresent(user::setName);
+                    Optional.ofNullable(updatedUserDTO.getEmail()).ifPresent(user::setEmail);
+                    Optional.ofNullable(updatedUserDTO.getAge()).ifPresent(user::setAge);
+                    return userRepository.saveUser(user);
+                })
+                .orElseThrow(() -> new UserNotFoundException(id));
     }
 
     /**
      * Exclui um usuário pelo ID.
-     *  * <p>
-     *  * Verifica se o usuário existe. Se não, lança {@link IllegalArgumentException}.
-     *  * Caso contrário, o usuário é removido do repositório.
-     *  * </p>
      *
-     * @param id o ID do usuário a ser excluído
-     * @throws IllegalArgumentException se o usuário não for encontrado
+     * @param id ID do usuário.
+     * @throws UserNotFoundException Se o usuário não for encontrado.
      */
     @Override
     public void deleteUser(long id) {
-        Optional<User> existingUser = userRepository.findUserById(id);
-        if (!existingUser.isPresent()) {
-            throw new IllegalArgumentException("Usuário não encontrado.");
+        if (!userRepository.findUserById(id).isPresent()) {
+            throw new UserNotFoundException(id);
         }
         userRepository.deleteUserById(id);
     }
-
-
-    private void validateUser(User user) {
-        if (user.getName() == null || user.getName().isEmpty()) {
-            throw new IllegalArgumentException("O nome do usuário é obrigatório.");
-        }
-        if (user.getEmail() == null || user.getEmail().isEmpty()) {
-            throw new IllegalArgumentException("O e-mail do usuário é obrigatório.");
-        }
-        if (user.getAge() == null) {
-            throw new IllegalArgumentException("É necessário inserir a idade do usuário para realizar o cadastro.");
-        }
-        if (user.getAge() <= 0) {
-            throw new IllegalArgumentException("A idade do usuário é obrigatória.");
-        }
-    }
-
-
 }
