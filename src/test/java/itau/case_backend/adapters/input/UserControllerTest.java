@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
 @AutoConfigureMockMvc
-class UserAdapterInTest {
+class UserControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -39,18 +39,19 @@ class UserAdapterInTest {
     private UserInputPort userInputPort;
 
     @Test
-    void testGetAllUsers() throws Exception {
-        when(userInputPort.getAllUsers()).thenReturn(List.of(new User(1, "John Doe", "john.doe@example.com", 25)));
+    void When_ExistingUsers_Expect_ReturnUserList() throws Exception {
+        User user = new User(1, "John Doe", "john.doe@example.com", 25);
+        when(userInputPort.getAllUsers()).thenReturn(List.of(user));
 
         mockMvc.perform(get("/users"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].name").value("John Doe"))
-                .andExpect(jsonPath("$[0].email").value("john.doe@example.com"))
-                .andExpect(jsonPath("$[0].age").value(25));
+                .andExpect(jsonPath("$[0].name").value(user.getName()))
+                .andExpect(jsonPath("$[0].email").value(user.getEmail()))
+                .andExpect(jsonPath("$[0].age").value(user.getAge()));
     }
 
     @Test
-    void testGetUserById_UserFound() throws Exception {
+    void When_ExistingUser_Expect_ReturnUser() throws Exception {
         when(userInputPort.getUserById(1)).thenReturn(new User(1, "John Doe", "john.doe@example.com", 25));
 
         mockMvc.perform(get("/users/1"))
@@ -61,18 +62,19 @@ class UserAdapterInTest {
     }
 
     @Test
-    void testGetUserById_UserNotFound() throws Exception {
-        when(userInputPort.getUserById(1)).thenReturn(null);
+    void When_NonExistentUser_Expect_ReturnNotFoundError() throws Exception {
+        long id = 1;
+        when(userInputPort.getUserById(id)).thenThrow(new UserNotFoundException(id));
 
-        mockMvc.perform(get("/users/1"))
+        mockMvc.perform(get("/users/" + id))
                 .andExpect(status().isNotFound())
-                .andExpect(content().string("Usuário não encontrado."));
+                .andExpect(jsonPath("$.errors[0]").value("Usuário com id " + id + " não encontrado."));
+
     }
 
     @Test
-    void testCreateUser() throws Exception {
+    void When_ValidUserData_Expect_CreateUserSuccessfully() throws Exception {
         User newUser = new User(1, "John Doe", "john.doe@example.com", 25);
-        UserDTO userDTO = new UserDTO("John Doe", "john.doe@example.com", 25);
 
         when(userInputPort.createUser(any(UserDTO.class))).thenReturn(newUser);
 
@@ -88,7 +90,7 @@ class UserAdapterInTest {
     }
 
     @Test
-    void testUpdateUser() throws Exception {
+    void When_ValidUpdateData_Expect_UpdateUserSuccessfully() throws Exception {
         User updatedUser = new User(1, "John Smith", "john.smith@example.com", 26);
 
         when(userInputPort.updateUser(eq(1L), any(UserDTO.class))).thenReturn(updatedUser);
@@ -103,7 +105,7 @@ class UserAdapterInTest {
     }
 
     @Test
-    void testUpdateUser_EmailAlreadyExists() throws Exception {
+    void When_EmailAlreadyExists_Expect_ReturnConflictError() throws Exception {
         UserDTO userDTO = new UserDTO("John Smith", "smith.doe@example.com", 26);
 
         when(userInputPort.updateUser(eq(1L), any(UserDTO.class)))
@@ -117,7 +119,7 @@ class UserAdapterInTest {
     }
 
     @Test
-    void testUpdateUser_UserNotFound() throws Exception {
+    void When_NonExistentUser_Expect_ReturnNotFoundErrorOnUpdate() throws Exception {
         UserDTO userDTO = new UserDTO("John Smith", "smith.doe@example.com", 26);
 
         when(userInputPort.updateUser(eq(1L), any(UserDTO.class)))
@@ -133,8 +135,8 @@ class UserAdapterInTest {
 
 
     @Test
-    void testDeleteUser() throws Exception {
-        mockMvc.perform(delete("/user/1"))
+    void When_ValidUserId_Expect_DeleteUserSuccessfully() throws Exception {
+        mockMvc.perform(delete("/users/1"))
                 .andExpect(status().isNoContent());
 
         verify(userInputPort, times(1)).deleteUser(1);
@@ -142,61 +144,69 @@ class UserAdapterInTest {
 
 
     @Test
-    public void whenNameIsBlank_thenReturnValidationError() throws Exception {
-        String invalidUser = "{\"name\": \"\", \"email\": \"valid@example.com\", \"age\": 25}";
+    public void When_BlankName_Expect_ReturnValidationError() throws Exception {
+        String invalidUserData = "{\"name\": \"\", \"email\": \"valid@example.com\", \"age\": 25}";
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(invalidUser))
+                        .content(invalidUserData))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").value("O nome não pode estar vazio; "));
+                .andExpect(jsonPath("$.errors").value("O nome não pode estar vazio"));
     }
 
     @Test
-    public void whenEmailIsInvalid_thenReturnValidationError() throws Exception {
-        String invalidUser = "{\"name\": \"John\", \"email\": \"invalid-email\", \"age\": 25}";
+    public void When_InvalidEmail_Expect_ReturnValidationError() throws Exception {
+        String invalidUserData = "{\"name\": \"John\", \"email\": \"invalid-email\", \"age\": 25}";
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(invalidUser))
+                        .content(invalidUserData))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").value("Formato de e-mail inválido"));
     }
 
     @Test
-    public void whenAgeIsLessThanOne_thenReturnValidationError() throws Exception {
-        String invalidUser = "{\"name\": \"John\", \"email\": \"john@example.com\", \"age\": 0}";
+    public void When_AgeLessThanOne_Expect_ReturnValidationError() throws Exception {
+        String invalidUserData = "{\"name\": \"John\", \"email\": \"john@example.com\", \"age\": 0}";
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(invalidUser))
+                        .content(invalidUserData))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").value("A idade deve ser maior que 0"));
     }
 
     @Test
-    public void whenAgeIsNull_thenReturnValidationError() throws Exception {
-        String invalidUser = "{\"name\": \"John\", \"email\": \"john@example.com\", \"age\": null}";
+    public void When_NullAge_Expect_ReturnValidationError() throws Exception {
+        String invalidUserData = "{\"name\": \"John\", \"email\": \"john@example.com\", \"age\": null}";
 
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(invalidUser))
+                        .content(invalidUserData))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errors").value("A idade não pode ser nula"));
     }
 
 
     @Test
-    public void whenPartialUpdateWithInvalidEmail_thenReturnValidationError() throws Exception {
-        String partialUpdate = "{\"email\": \"invalidemail\"}"; // Invalid email
+    public void When_InvalidEmailOnPartialUpdate_Expect_ReturnValidationError() throws Exception {
+        String partialUpdateData = "{\"email\": \"invalidemail\"}"; // Invalid email
 
         mockMvc.perform(patch("/users/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(partialUpdate))
+                        .content(partialUpdateData))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.errors").value("Formato de e-mail inválido; "));
+                .andExpect(jsonPath("$.errors").value("Formato de e-mail inválido"));
     }
 
+    @Test
+    public void When_InvalidNameOnPartialUpdate_Expect_ReturnValidationError() throws Exception {
+        String partialUpdateData = "{\"name\": \"\"}"; // Invalid name
 
-
+        mockMvc.perform(patch("/users/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(partialUpdateData))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors").value("O nome deve ter pelo menos 1 caractere"));
+    }
 }

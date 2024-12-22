@@ -1,7 +1,9 @@
 package itau.case_backend.adapters.input;
 
+import itau.case_backend.domain.UserServiceImpl;
 import itau.case_backend.domain.dtos.UserDTO;
 import itau.case_backend.domain.dtos.UserPartialUpdateDTO;
+import itau.case_backend.domain.entities.User;
 import itau.case_backend.ports.input.UserInputPort;
 
 import jakarta.validation.Valid;
@@ -20,9 +22,8 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/users")
-public class UserAdapterIn {
+public class UserController {
 
-    @Autowired
     private final UserInputPort userInputPort;
 
     /**
@@ -30,7 +31,8 @@ public class UserAdapterIn {
      *
      * @param userInputPort Porta de entrada para operações de usuários.
      */
-    public UserAdapterIn(UserInputPort userInputPort) {
+    @Autowired
+    public UserController(UserInputPort userInputPort) {
         this.userInputPort = userInputPort;
     }
 
@@ -40,7 +42,7 @@ public class UserAdapterIn {
      * @return Lista de todos os usuários cadastrados.
      */
     @GetMapping
-    public ResponseEntity<?> getAllUsers() {
+    public ResponseEntity<List<User>> getAllUsers() {
         return ResponseEntity.ok(userInputPort.getAllUsers());
     }
 
@@ -51,7 +53,7 @@ public class UserAdapterIn {
      * @return Usuário correspondente ao ID.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<?> getUserById(@PathVariable long id) {
+    public ResponseEntity<User> getUserById(@PathVariable long id) {
         return ResponseEntity.ok(userInputPort.getUserById(id));
     }
 
@@ -63,7 +65,7 @@ public class UserAdapterIn {
      * @return Usuário criado com sucesso.
      */
     @PostMapping
-    public ResponseEntity<?> createUser(@Valid @RequestBody UserDTO userDTO) {
+    public ResponseEntity<User> createUser(@Valid @RequestBody UserDTO userDTO) {
         return ResponseEntity.status(HttpStatus.CREATED).body(userInputPort.createUser(userDTO));
     }
 
@@ -75,7 +77,7 @@ public class UserAdapterIn {
      * @return Usuário atualizado.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@Valid @PathVariable long id, @RequestBody UserDTO userDTO) {
+    public ResponseEntity<User> updateUser(@PathVariable long id, @Valid @RequestBody UserDTO userDTO) {
         return ResponseEntity.ok(userInputPort.updateUser(id, userDTO));
     }
 
@@ -87,8 +89,8 @@ public class UserAdapterIn {
      * @return Usuário com os campos atualizados.
      */
     @PatchMapping("/{id}")
-    public ResponseEntity<?> updatePartialUser(@Valid @PathVariable long id, @RequestBody UserPartialUpdateDTO userPartialUpdateDTO) {
-        return ResponseEntity.ok(userInputPort.updatePartialUser(id, userPartialUpdateDTO));
+    public ResponseEntity<User> partialUpdateUser(@PathVariable long id, @Valid @RequestBody UserPartialUpdateDTO userPartialUpdateDTO) {
+        return ResponseEntity.ok(userInputPort.partialUpdateUser(id, userPartialUpdateDTO));
     }
 
     /**
