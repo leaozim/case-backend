@@ -2,8 +2,8 @@ package itau.case_backend.adapters.input;
 
 import itau.case_backend.domain.dtos.UserDTO;
 import itau.case_backend.domain.dtos.UserPartialUpdateDTO;
-import itau.case_backend.domain.entities.User;
 import itau.case_backend.ports.input.UserInputPort;
+
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -19,7 +19,7 @@ import java.util.List;
  * delegando as operações à camada de serviço através do {@link UserInputPort}.
  */
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/users")
 public class UserAdapterIn {
 
     @Autowired
