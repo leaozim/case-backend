@@ -69,10 +69,11 @@ public class UserServiceImpl implements UserInputPort {
      */
     @Override
     public User createUser(UserDTO userDTO) {
-        if (userRepository.findAllUsers().stream()
-                .anyMatch(u -> u.getEmail().equals(userDTO.getEmail()))) {
+        Optional<User> userOptional = userRepository.findUserByEmail(userDTO.getEmail());
+        if (userOptional.isPresent()) {
             throw new EmailAlreadyExistsException(userDTO.getEmail());
         }
+
         return userRepository.saveUser(userDTO.toEntity());
     }
 
@@ -87,11 +88,11 @@ public class UserServiceImpl implements UserInputPort {
      */
     @Override
     public User updateUser(long id, UserDTO userDTO) {
-
-        if (userRepository.findAllUsers().stream()
-                .anyMatch(u -> u.getEmail().equals(userDTO.getEmail()))) {
+        Optional<User> userOptional = userRepository.findUserByEmail(userDTO.getEmail());
+        if (userOptional.isPresent()) {
             throw new EmailAlreadyExistsException(userDTO.getEmail());
         }
+
         return userRepository.findUserById(id)
                 .map(user -> {
                     user.setName(userDTO.getName());
@@ -113,10 +114,11 @@ public class UserServiceImpl implements UserInputPort {
      */
     @Override
     public User partialUpdateUser(long id, UserPartialUpdateDTO updatedUserDTO) {
-        if (userRepository.findAllUsers().stream()
-                .anyMatch(u -> u.getEmail().equals(updatedUserDTO.getEmail()))) {
+        Optional<User> userOptional = userRepository.findUserByEmail(updatedUserDTO.getEmail());
+        if (userOptional.isPresent()) {
             throw new EmailAlreadyExistsException(updatedUserDTO.getEmail());
         }
+
         return userRepository.findUserById(id)
                 .map(user -> {
                     Optional.ofNullable(updatedUserDTO.getName()).ifPresent(user::setName);
