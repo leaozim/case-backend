@@ -42,6 +42,6 @@ O sistema implementa as operações básicas de CRUD (Criar, Ler, Atualizar e De
     cd case-backend
    ```
 3. Execute o projeto usando o Maven:
- ```bash
+    ```bash
     mvn spring-boot:run
    ```
