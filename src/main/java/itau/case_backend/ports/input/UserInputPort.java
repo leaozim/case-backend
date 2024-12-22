@@ -53,7 +53,7 @@ public interface UserInputPort {
      * @param updatedUserDTO o objeto {@link UserPartialUpdateDTO} contendo os dados atualizados
      * @return o {@link User} atualizado com os dados parciais
      */
-    User updatePartialUser(long id, UserPartialUpdateDTO updatedUserDTO);
+    User partialUpdateUser(long id, UserPartialUpdateDTO updatedUserDTO);
 
     /**
      * Remove um usuário pelo ID.
