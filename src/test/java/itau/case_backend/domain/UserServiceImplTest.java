@@ -1,5 +1,9 @@
 package itau.case_backend.domain;
 
+import itau.case_backend.adapters.output.UserRepository;
+import itau.case_backend.config.exception.EmailAlreadyExistsException;
+import itau.case_backend.config.exception.UserNotFoundException;
+import itau.case_backend.domain.dtos.UserDTO;
 import itau.case_backend.domain.entities.User;
 import itau.case_backend.ports.output.UserOutputPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -8,6 +12,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -16,88 +22,97 @@ import static org.mockito.Mockito.*;
 import java.util.Optional;
 
 public class UserServiceImplTest {
-    @Mock
-    private UserOutputPort userRepository;
-
-    @InjectMocks
     private UserServiceImpl userService;
+    private UserRepository userRepository;
 
     @BeforeEach
-    public void setUp() {
-        MockitoAnnotations.openMocks(this);
+    void setUp() {
+        userRepository = new UserRepository();
+        userService = new UserServiceImpl(userRepository);
+    }
+
+
+    @Test
+    void When_CreatingUser_Expect_UserCreated() {
+        UserDTO userDTO = new UserDTO("John Doe", "john@example.com", 30);
+
+        User savedUser = userService.createUser(userDTO);
+
+        assertNotNull(savedUser);
+        assertEquals("John Doe", savedUser.getName());
+        assertEquals("john@example.com", savedUser.getEmail());
+        assertEquals(30, savedUser.getAge());
+        assertNotEquals(0, savedUser.getId());
+
     }
 
     @Test
-    public void testCreateUser_ShouldReturnCreatedUser() {
-        User user = new User(0, "John Doe", "john.doe@example.com", 25);
-        when(userRepository.saveUser(any(User.class))).thenReturn(user);
+    void When_CreatingUserWithExistingEmail_Expect_EmailAlreadyExistsException() {
+        UserDTO userDTO = new UserDTO("John Doe", "john@example.com", 30);
 
-        User createdUser = userService.createUser(user);
+        userService.createUser(userDTO);
 
-        assertNotNull(createdUser);
-        assertEquals("John Doe", createdUser.getName());
-        assertEquals("john.doe@example.com", createdUser.getEmail());
-        assertEquals(25, createdUser.getAge());
+        UserDTO duplicateEmailDTO = new UserDTO("Jane Doe", "john@example.com", 25);
 
-        verify(userRepository, times(1)).saveUser(user);
+        assertThrows(EmailAlreadyExistsException.class, () -> userService.createUser(duplicateEmailDTO));
+    }
+
+
+
+    @Test
+    void When_DeletingUser_Expect_UserRemoved() {
+        UserDTO userDTO = new UserDTO("John Doe", "john@example.com", 30);
+        User savedUser = userService.createUser(userDTO);
+
+        userService.deleteUser(savedUser.getId());
+
+        assertThrows(UserNotFoundException.class, () -> userService.getUserById(savedUser.getId()));
     }
 
     @Test
-    public void testCreateUser_ShouldThrowException_WhenEmailExists() {
-        User user = new User(0, "John Doe", "john.doe@example.com", 25);
-        when(userRepository.findAllUsers()).thenReturn(List.of(user));
-
-        IllegalArgumentException thrown = assertThrows(IllegalArgumentException.class, () -> {
-            userService.createUser(user);
-        });
-
-        assertEquals("O e-mail fornecido já está cadastrado em nosso sistema. Por favor, insira um e-mail diferente.", thrown.getMessage());
+    void When_DeletingNonExistentUser_Expect_UserNotFoundException() {
+        assertThrows(UserNotFoundException.class, () -> userService.deleteUser(9999));
     }
 
     @Test
-    public void testGetUserById_ShouldReturnUser() {
-        User user = new User(1, "John Doe", "john.doe@example.com", 25);
-        when(userRepository.findUserById(1)).thenReturn(Optional.of(user));
+    void When_GettingUserById_Expect_UserFound() {
+        UserDTO userDTO = new UserDTO("Alice", "alice@example.com", 25);
+        User savedUser = userService.createUser(userDTO);
 
-        User foundUser = userService.getUserById(1);
+        User foundUser = userService.getUserById(savedUser.getId());
 
         assertNotNull(foundUser);
-        assertEquals("John Doe", foundUser.getName());
+        assertEquals(savedUser.getId(), foundUser.getId());
+        assertEquals(savedUser.getName(), foundUser.getName());
+        assertEquals(savedUser.getEmail(), foundUser.getEmail());
+    }
+
+    @Test
+    void When_GettingUserByNonExistentId_Expect_UserNotFoundException() {
+        assertThrows(UserNotFoundException.class, () -> userService.getUserById(9999));
+    }
+
+    @Test
+    void When_UpdatingUser_Expect_UserUpdatedSuccessfully() {
+        UserDTO userDTO = new UserDTO("Alice", "alice@example.com", 25);
+        User savedUser = userService.createUser(userDTO);
+
+        UserDTO updatedUserDTO = new UserDTO("Alice Updated", "alice.updated@example.com", 26);
+        User updatedUser = userService.updateUser(savedUser.getId(), updatedUserDTO);
+
+        assertNotNull(updatedUser);
+        assertEquals("Alice Updated", updatedUser.getName());
+        assertEquals("alice.updated@example.com", updatedUser.getEmail());
+        assertEquals(26, updatedUser.getAge());
     }
 
 
     @Test
-    public void testUpdateUser_ShouldReturnUpdatedUser() {
-        User existingUser = new User(1, "John Doe", "john.doe@example.com", 25);
-        User updatedUser = new User(1, "John Smith", "john.smith@example.com", 26);
-        when(userRepository.findUserById(1)).thenReturn(Optional.of(existingUser));
-        when(userRepository.saveUser(any(User.class))).thenReturn(updatedUser);
+    void When_UpdatingNonExistentUser_Expect_UserNotFoundException() {
+        UserDTO updatedUserDTO = new UserDTO("Alice Updated", "alice.updated@example.com", 26);
 
-        User result = userService.updateUser(1, updatedUser);
-
-        assertNotNull(result);
-        assertEquals("John Smith", result.getName());
-        assertEquals("john.smith@example.com", result.getEmail());
-        assertEquals(26, result.getAge());
-
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository, times(1)).saveUser(userCaptor.capture());
-
-        User savedUser = userCaptor.getValue();
-        assertEquals(updatedUser.getName(), savedUser.getName());
-        assertEquals(updatedUser.getEmail(), savedUser.getEmail());
-        assertEquals(updatedUser.getAge(), savedUser.getAge());
+        assertThrows(UserNotFoundException.class, () -> userService.updateUser(9999, updatedUserDTO));
     }
 
 
-
-    @Test
-    public void testDeleteUser_ShouldDeleteUser() {
-        User user = new User(1, "John Doe", "john.doe@example.com", 25);
-        when(userRepository.findUserById(1)).thenReturn(Optional.of(user));
-
-        userService.deleteUser(1);
-
-        verify(userRepository, times(1)).deleteUserById(1);
-    }
 }

@@ -7,13 +7,14 @@ import itau.case_backend.domain.dtos.UserPartialUpdateDTO;
 import itau.case_backend.domain.entities.User;
 import itau.case_backend.ports.input.UserInputPort;
 import itau.case_backend.ports.output.UserOutputPort;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Serviço que implementa a lógica de negócios para o gerenciamento de usuários.
+ * Serviço que implementa as regras de negócio para o gerenciamento de usuários.
  * Esta classe serve como a porta de entrada (input port) para a aplicação.
  * Os dados são armazenados temporariamente e não há persistência duradoura, sendo utilizado um repositório (output port).
  *
@@ -27,11 +28,17 @@ public class UserServiceImpl implements UserInputPort {
 
     private final UserOutputPort userRepository;
 
+    /**
+     * Construtor para a classe UserServiceImpl.
+     *
+     * @param userRepository instância da porta de saída {@link UserOutputPort} usada para acessar os dados dos usuários.
+     */
+    @Autowired
     public UserServiceImpl(UserOutputPort userRepository) {
         this.userRepository = userRepository;
     }
 
-    /**
+    /**s
      * Retorna todos os usuários cadastrados.
      *
      * @return Lista de usuários.
@@ -81,7 +88,6 @@ public class UserServiceImpl implements UserInputPort {
     @Override
     public User updateUser(long id, UserDTO userDTO) {
 
-        System.out.println( "updateUser");
         if (userRepository.findAllUsers().stream()
                 .anyMatch(u -> u.getEmail().equals(userDTO.getEmail()))) {
             throw new EmailAlreadyExistsException(userDTO.getEmail());
@@ -106,7 +112,7 @@ public class UserServiceImpl implements UserInputPort {
      * @throws EmailAlreadyExistsException Se o e-mail já estiver em uso.
      */
     @Override
-    public User updatePartialUser(long id, UserPartialUpdateDTO updatedUserDTO) {
+    public User partialUpdateUser(long id, UserPartialUpdateDTO updatedUserDTO) {
         if (userRepository.findAllUsers().stream()
                 .anyMatch(u -> u.getEmail().equals(updatedUserDTO.getEmail()))) {
             throw new EmailAlreadyExistsException(updatedUserDTO.getEmail());
@@ -129,7 +135,7 @@ public class UserServiceImpl implements UserInputPort {
      */
     @Override
     public void deleteUser(long id) {
-        if (!userRepository.findUserById(id).isPresent()) {
+        if (userRepository.findUserById(id).isEmpty()) {
             throw new UserNotFoundException(id);
         }
         userRepository.deleteUserById(id);
