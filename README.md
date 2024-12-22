@@ -34,7 +34,7 @@ O sistema implementa as operações básicas de CRUD (Criar, Ler, Atualizar e De
 
 1. Clone o repositório:
    ```bash
-   git clone https://github.com/usuario/case-backend.git
+   git clone git@github.com:leaozim/case-backend.git
    ```
 
 2. Navegue até o diretório do projeto:
