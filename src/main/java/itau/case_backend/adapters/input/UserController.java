@@ -1,6 +1,5 @@
 package itau.case_backend.adapters.input;
 
-import itau.case_backend.domain.UserServiceImpl;
 import itau.case_backend.domain.dtos.UserDTO;
 import itau.case_backend.domain.dtos.UserPartialUpdateDTO;
 import itau.case_backend.domain.entities.User;
