@@ -32,10 +32,6 @@ public class User {
         this.age = age;
     }
 
-    /**
-     * Construtor padrão
-     */
-    public User() {}
 
     /**
      * Obtém o ID do usuário.
